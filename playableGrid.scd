@@ -1,31 +1,79 @@
 var subscribers = Set();
+var rows = 128, columns = 128;
 
-~sequencer = 'sequencer'.import.new(120);
+var sequencer = 'sequencer'.import.new(120);
+
+var fsm = Dictionary.with(*[
+		'OFF' -> 'READY',
+		'PLAYING' -> 'QUEUED_STOP',
+		'QUEUED_PLAY' -> 'PLAYING',
+		'STOPPED' -> ['READY', 'OFF'],
+		'READY' -> ['QUEUED_PLAY', 'OFF'],
+		'QUEUED_STOP' -> 'STOPPED'
+	]);
+
+~states = M {
+	fsm.keys;
+};
 
 ~parentEnv = Environment.make {
+	/*
+	--------------------------------------------------------------
+	necessary keys inherited by grid items for proper functioning:
+	--------------------------------------------------------------
+	*/
 	~quant = 1;
 	~x = nil;
 	~y = nil;
+	~clock = sequencer.clock;
+	~status = 'OFF';
 	~emit = M { arg status;
+		/*
+		use this block instead if you want to control the state transitions
+		of grid items as a finite state machine (not totally necessary)
+		if (Set.with(*fsm[~status]).includes(status), {
+			~status = status;
+			subscribers.do(_.setStatus(~x, ~y, status));
+			format("PLAYABLE GRID: % %", ~status, [~x, ~y]).postln;
+			});
+		currentEnvironment;			
+		*/
 		~status = status;
 		subscribers.do(_.setStatus(~x, ~y, status));
+		format("PLAYABLE GRID: % %", ~status, [~x, ~y]).postln;
 		currentEnvironment;
 	};
+
+	/*
+	-------------------------------------------------------------
+	everything else you can define yourself, especially 'play'
+	and 'stop' methods
+	-------------------------------------------------------------
+	*/
 	~play = M {}
 };
 
-~colProtos = Array.fill(128, { Environment() });
+~colProtos = Array.fill(columns, { arg i;
+	Environment.make {
+		/*
+		-------------------------------------------------------------
+		you can put here useful keys inherited by each item in the
+		column, eg a bus or proxy for sending audio to,
+		or input bus/proxies
+		-------------------------------------------------------------
+		*/
+	}
+});
 
-~matrix = Array2D.new(128, 128);
+~matrix = Array2D.new(rows, columns);
 
 ~insertAt = M { arg x, y, fn;
 	var env = { fn.import }.try({ arg err;
-		Environment.make(fn);	
+		Environment.make(fn).know_(true);	
 	});
 
 	env.parent_(~parentEnv)
 		.proto_(~colProtos[x])
-		.know_(true)
 		.make({ ~x = x; ~y = y })
 		.emit('READY');
 
@@ -79,12 +127,12 @@ var subscribers = Set();
 
 ~play = M { arg x, y;
 	var toStop = currentEnvironment.getPlaying(x)
-		.reject({ arg item; item.x == x && item.y == y });
-	~sequencer.play(~matrix[y, x], toStop);
+		.reject({ arg item; item.y == y });
+	sequencer.play(~matrix[y, x], toStop);
 };
 
 ~stop = M { arg x, y; 
-	~sequencer.stop(~matrix[y, x]);
+	sequencer.stop(~matrix[y, x]);
 };
 
 
