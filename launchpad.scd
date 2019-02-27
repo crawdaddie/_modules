@@ -36,9 +36,7 @@ MIDIClient.destinations.do({ arg item;
 
 // midi input
 MIDIIn.connectAll();
-~lp_inport = MIDIClient.sources.detect({ arg item;
-	item.device.find("Launchpad").notNil
-	}) !? _.uid ? 0;
+~lp_inport = MIDIClient.sources.detect(_.device.find("Launchpad").notNil) !? _.uid ? 0;
 
 MIDIdef.noteOn(\noteOnListener, { arg val, note, channel, src;
 	var x, y;

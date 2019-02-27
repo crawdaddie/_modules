@@ -27,19 +27,19 @@ var fsm = Dictionary.with(*[
 	~y = nil;
 	~clock = sequencer.clock;
 	~status = 'OFF';
-	~emit = M { arg status;
+	~emit = M { arg newStatus;
 		/*
 		use this block instead if you want to control the state transitions
 		of grid items as a finite state machine (not totally necessary)
-		if (Set.with(*fsm[~status]).includes(status), {
-			~status = status;
-			subscribers.do(_.setStatus(~x, ~y, status));
+		if (Set.with(*fsm[~status]).includes(newStatus), {
+			~status = newStatus;
+			subscribers.do(_.setStatus(~x, ~y, newStatus));
 			format("PLAYABLE GRID: % %", ~status, [~x, ~y]).postln;
 			});
 		currentEnvironment;			
 		*/
-		~status = status;
-		subscribers.do(_.setStatus(~x, ~y, status));
+		~status = newStatus;
+		subscribers.do(_.setStatus(~x, ~y, newStatus));
 		format("PLAYABLE GRID: % %", ~status, [~x, ~y]).postln;
 		currentEnvironment;
 	};
